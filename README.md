@@ -1,6 +1,6 @@
 
 # _Video Game Developer_
-![Alt Text](https://i.gifer.com/Up8y.gif)
+![alt-text](https://i.gifer.com/Up8y.gif)
 
 I am a student of the GTI degree at the UPV very interested in the part of scripting in videogame projects.
 > For every problem there is a solution.
