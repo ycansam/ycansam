@@ -1,6 +1,6 @@
 
 # _Video Game Developer_
-![pito-gordo](https://imgur.com/ig9UU4Q)
+![pito-gordo](https://i.imgur.com/ig9UU4Q.gif)
 
 I am a student of the GTI degree at the UPV very interested in the part of scripting in videogame projects.
 > For every problem there is a solution.
