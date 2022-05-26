@@ -1,5 +1,5 @@
 
-# _Video Game & Web/App Developer_
+# _Full Stack & Software Developer _
 ![pito-gordo](https://i.imgur.com/ig9UU4Q.gif)
 
 I am a student of the GTI degree at the UPV very interested in the part of scripting in videogame projects & Web/App Development.
