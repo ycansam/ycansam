@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pong — Yeray Candel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-dim: #8b949e;
+      --blue: #58a6ff;
+      --orange: #f0883e;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ===== TERMINAL WRAPPER ===== */
+    .terminal {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 16px 70px rgba(0,0,0,.6);
+      max-width: 860px;
+      width: 96vw;
+    }
+
+    .terminal__bar {
+      background: var(--surface);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .terminal__dot {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .terminal__dot--red   { background: var(--red); }
+    .terminal__dot--yellow{ background: var(--yellow); }
+    .terminal__dot--green { background: var(--green); }
+
+    .terminal__title {
+      flex: 1;
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .terminal__body {
+      position: relative;
+      background: #010409;
+    }
+
+    /* ===== CANVAS ===== */
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: auto;
+    }
+
+    /* ===== OVERLAY SCREENS ===== */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(1, 4, 9, 0.88);
+      backdrop-filter: blur(6px);
+      z-index: 10;
+      transition: opacity .3s;
+    }
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay__title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(18px, 4vw, 32px);
+      color: var(--blue);
+      margin-bottom: 12px;
+      text-shadow: 0 0 20px rgba(88,166,255,.4);
+    }
+
+    .overlay__subtitle {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(8px, 1.8vw, 12px);
+      color: var(--text-dim);
+      margin-bottom: 32px;
+      line-height: 1.8;
+      text-align: center;
+    }
+
+    .overlay__score {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(14px, 3vw, 24px);
+      margin-bottom: 24px;
+    }
+    .overlay__score .blue  { color: var(--blue); }
+    .overlay__score .orange{ color: var(--orange); }
+
+    .overlay__btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(10px, 2vw, 14px);
+      padding: 14px 32px;
+      border: 2px solid var(--blue);
+      background: transparent;
+      color: var(--blue);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: 1px;
+    }
+    .overlay__btn:hover, .overlay__btn:focus {
+      background: var(--blue);
+      color: var(--bg);
+      box-shadow: 0 0 24px rgba(88,166,255,.35);
+    }
+
+    .overlay__mode-btns {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .overlay__mode-btns .overlay__btn {
+      font-size: clamp(8px, 1.5vw, 11px);
+      padding: 12px 20px;
+    }
+    .overlay__mode-btns .overlay__btn--orange {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+    .overlay__mode-btns .overlay__btn--orange:hover,
+    .overlay__mode-btns .overlay__btn--orange:focus {
+      background: var(--orange);
+      color: var(--bg);
+      box-shadow: 0 0 24px rgba(240,136,62,.35);
+    }
+
+    .overlay__controls {
+      margin-top: 24px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(7px, 1.2vw, 9px);
+      color: var(--text-dim);
+      line-height: 2.2;
+      text-align: center;
+    }
+
+    .key {
+      display: inline-block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: inherit;
+      color: var(--text);
+      min-width: 28px;
+      text-align: center;
+    }
+
+    /* ===== BACK LINK ===== */
+    .back-link {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--blue); }
+
+    /* ===== MOBILE TOUCH CONTROLS ===== */
+    .touch-controls {
+      display: none;
+      width: 96vw;
+      max-width: 860px;
+      margin-top: 8px;
+      gap: 12px;
+    }
+
+    .touch-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .touch-btn {
+      flex: 1;
+      min-height: 54px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .touch-btn:active { background: #21262d; }
+    .touch-btn--blue:active  { border-color: var(--blue); }
+    .touch-btn--orange:active{ border-color: var(--orange); }
+
+    @media (pointer: coarse), (max-width: 768px) {
+      .touch-controls { display: flex; }
+    }
+
+    /* Scanlines */
+    .terminal__body::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,.06) 2px,
+        rgba(0,0,0,.06) 4px
+      );
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="terminal">
+    <div class="terminal__bar">
+      <div class="terminal__dot terminal__dot--red"></div>
+      <div class="terminal__dot terminal__dot--yellow"></div>
+      <div class="terminal__dot terminal__dot--green"></div>
+      <span class="terminal__title">pong.exe</span>
+      <div style="width:52px"></div>
+    </div>
+    <div class="terminal__body">
+      <canvas id="game" width="840" height="480"></canvas>
+
+      <!-- START SCREEN -->
+      <div class="overlay" id="startScreen">
+        <div class="overlay__title">PONG</div>
+        <div class="overlay__subtitle">by Yeray Candel</div>
+        <div class="overlay__mode-btns">
+          <button class="overlay__btn" onclick="startGame('easy')">EASY</button>
+          <button class="overlay__btn" onclick="startGame('normal')">NORMAL</button>
+          <button class="overlay__btn overlay__btn--orange" onclick="startGame('hard')">HARD</button>
+        </div>
+        <div class="overlay__controls">
+          <span class="key">W</span> <span class="key">S</span> or <span class="key">↑</span> <span class="key">↓</span> to move<br>
+          First to <strong style="color:var(--blue)">7</strong> wins
+        </div>
+      </div>
+
+      <!-- GAME OVER SCREEN -->
+      <div class="overlay hidden" id="endScreen">
+        <div class="overlay__title" id="endTitle">YOU WIN!</div>
+        <div class="overlay__score">
+          <span class="blue" id="endLeft">0</span>
+          &nbsp;—&nbsp;
+          <span class="orange" id="endRight">0</span>
+        </div>
+        <button class="overlay__btn" onclick="showStart()">PLAY AGAIN</button>
+      </div>
+
+      <!-- PAUSE -->
+      <div class="overlay hidden" id="pauseScreen">
+        <div class="overlay__title" style="font-size:clamp(14px,3vw,22px)">PAUSED</div>
+        <div class="overlay__controls" style="margin-top:16px">
+          Press <span class="key">ESC</span> or <span class="key">P</span> to resume
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile touch buttons -->
+  <div class="touch-controls" id="touchControls">
+    <div class="touch-zone">
+      <button class="touch-btn touch-btn--blue" id="touchUp">▲</button>
+      <button class="touch-btn touch-btn--blue" id="touchDown">▼</button>
+    </div>
+  </div>
+
+  <a href="./index.html" class="back-link">← Volver al portfolio</a>
+
+<script>
+// ==================== GAME ENGINE ====================
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const W = 840, H = 480;
+const WIN_SCORE = 7;
+
+// Difficulty presets
+const DIFFICULTY = {
+  easy:   { cpuSpeed: 3.0, ballSpeed: 5, accel: 0.3, maxBall: 9,  cpuError: 35 },
+  normal: { cpuSpeed: 4.5, ballSpeed: 6, accel: 0.4, maxBall: 12, cpuError: 18 },
+  hard:   { cpuSpeed: 6.5, ballSpeed: 7, accel: 0.5, maxBall: 16, cpuError: 6  },
+};
+
+let diff, running = false, paused = false;
+
+// Paddles
+const PADDLE_W = 14, PADDLE_H = 80, PADDLE_RAD = 7;
+let paddleSpeed = 7;
+let leftY, rightY;
+
+// Ball
+const BALL_R = 7;
+let ballX, ballY, ballVX, ballVY, speed;
+
+// Score
+let scoreL, scoreR;
+
+// Particles
+let particles = [];
+
+// Input
+const keys = {};
+
+// ==================== INIT ====================
+function resetBall(dir) {
+  ballX = W / 2;
+  ballY = H / 2;
+  speed = diff.ballSpeed;
+  const angle = (Math.random() * 0.8 - 0.4); // -0.4..0.4 rad
+  ballVX = speed * Math.cos(angle) * dir;
+  ballVY = speed * Math.sin(angle);
+}
+
+function init() {
+  leftY = H / 2 - PADDLE_H / 2;
+  rightY = H / 2 - PADDLE_H / 2;
+  scoreL = 0;
+  scoreR = 0;
+  resetBall(1);
+  particles = [];
+}
+
+// ==================== PARTICLES ====================
+function spawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      life: 1,
+      decay: 0.02 + Math.random() * 0.03,
+      r: 2 + Math.random() * 3,
+      color,
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life * 0.7;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ==================== UPDATE ====================
+function update() {
+  // Player paddle
+  if (keys['w'] || keys['arrowup'])   leftY = Math.max(0, leftY - paddleSpeed);
+  if (keys['s'] || keys['arrowdown']) leftY = Math.min(H - PADDLE_H, leftY + paddleSpeed);
+
+  // CPU paddle (with difficulty-based error margin and speed)
+  const cpuTarget = ballY - PADDLE_H / 2 + (Math.sin(Date.now() * 0.002) * diff.cpuError);
+  const cpuDiff = cpuTarget - rightY;
+  if (Math.abs(cpuDiff) > 4) {
+    rightY += Math.sign(cpuDiff) * Math.min(Math.abs(cpuDiff), diff.cpuSpeed);
+  }
+  rightY = Math.max(0, Math.min(H - PADDLE_H, rightY));
+
+  // Ball movement
+  ballX += ballVX;
+  ballY += ballVY;
+
+  // Top/bottom bounce
+  if (ballY - BALL_R <= 0) {
+    ballY = BALL_R;
+    ballVY = Math.abs(ballVY);
+    spawnParticles(ballX, ballY, '#30363d', 4);
+  }
+  if (ballY + BALL_R >= H) {
+    ballY = H - BALL_R;
+    ballVY = -Math.abs(ballVY);
+    spawnParticles(ballX, ballY, '#30363d', 4);
+  }
+
+  // Left paddle collision
+  if (
+    ballVX < 0 &&
+    ballX - BALL_R <= 20 + PADDLE_W &&
+    ballX - BALL_R >= 20 &&
+    ballY >= leftY && ballY <= leftY + PADDLE_H
+  ) {
+    ballX = 20 + PADDLE_W + BALL_R;
+    const hit = (ballY - (leftY + PADDLE_H / 2)) / (PADDLE_H / 2); // -1..1
+    speed = Math.min(speed + diff.accel, diff.maxBall);
+    const angle = hit * (Math.PI / 3.5);
+    ballVX = speed * Math.cos(angle);
+    ballVY = speed * Math.sin(angle);
+    spawnParticles(ballX, ballY, '#58a6ff', 10);
+  }
+
+  // Right paddle collision
+  if (
+    ballVX > 0 &&
+    ballX + BALL_R >= W - 20 - PADDLE_W &&
+    ballX + BALL_R <= W - 20 &&
+    ballY >= rightY && ballY <= rightY + PADDLE_H
+  ) {
+    ballX = W - 20 - PADDLE_W - BALL_R;
+    const hit = (ballY - (rightY + PADDLE_H / 2)) / (PADDLE_H / 2);
+    speed = Math.min(speed + diff.accel, diff.maxBall);
+    const angle = hit * (Math.PI / 3.5);
+    ballVX = -speed * Math.cos(angle);
+    ballVY = speed * Math.sin(angle);
+    spawnParticles(ballX, ballY, '#f0883e', 10);
+  }
+
+  // Score
+  if (ballX < -BALL_R) {
+    scoreR++;
+    spawnParticles(20, ballY, '#f85149', 20);
+    if (scoreR >= WIN_SCORE) return endGame();
+    resetBall(1);
+  }
+  if (ballX > W + BALL_R) {
+    scoreL++;
+    spawnParticles(W - 20, ballY, '#3fb950', 20);
+    if (scoreL >= WIN_SCORE) return endGame();
+    resetBall(-1);
+  }
+
+  updateParticles();
+}
+
+// ==================== DRAW ====================
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#010409';
+  ctx.fillRect(0, 0, W, H);
+
+  // Center line
+  ctx.setLineDash([10, 8]);
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0);
+  ctx.lineTo(W / 2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Scores
+  ctx.font = '600 48px "Press Start 2P", monospace';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#58a6ff';
+  ctx.shadowColor = 'rgba(88,166,255,.3)';
+  ctx.shadowBlur = 16;
+  ctx.fillText(scoreL, W / 2 - 40, 64);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#f0883e';
+  ctx.shadowColor = 'rgba(240,136,62,.3)';
+  ctx.fillText(scoreR, W / 2 + 40, 64);
+  ctx.shadowBlur = 0;
+
+  // Labels
+  ctx.font = '10px "Press Start 2P", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(88,166,255,.35)';
+  ctx.fillText('YOU', 28 + PADDLE_W / 2, H - 12);
+  ctx.fillStyle = 'rgba(240,136,62,.35)';
+  ctx.fillText('CPU', W - 28 - PADDLE_W / 2, H - 12);
+
+  // Ball trail
+  ctx.globalAlpha = 0.1;
+  ctx.fillStyle = '#58a6ff';
+  ctx.beginPath();
+  ctx.arc(ballX - ballVX * 2, ballY - ballVY * 2, BALL_R + 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.05;
+  ctx.beginPath();
+  ctx.arc(ballX - ballVX * 4, ballY - ballVY * 4, BALL_R + 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Ball
+  ctx.shadowColor = 'rgba(88,166,255,.5)';
+  ctx.shadowBlur = 14;
+  ctx.fillStyle = '#e6edf3';
+  ctx.beginPath();
+  ctx.arc(ballX, ballY, BALL_R, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Paddles (rounded rects)
+  drawPaddle(20, leftY, '#58a6ff', 'rgba(88,166,255,.25)');
+  drawPaddle(W - 20 - PADDLE_W, rightY, '#f0883e', 'rgba(240,136,62,.25)');
+
+  // Particles
+  drawParticles();
+
+  // Difficulty indicator
+  ctx.font = '9px "Press Start 2P", monospace';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(139,148,158,.3)';
+  ctx.fillText(diff === DIFFICULTY.easy ? 'EASY' : diff === DIFFICULTY.normal ? 'NORMAL' : 'HARD', W - 16, 18);
+
+  // FPS-style decoration
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(63,185,80,.3)';
+  ctx.fillText('▸ RUN', 16, 18);
+}
+
+function drawPaddle(x, y, color, glow) {
+  ctx.shadowColor = glow;
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(x, y, PADDLE_W, PADDLE_H, PADDLE_RAD);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+// ==================== GAME LOOP ====================
+function loop() {
+  if (!running) return;
+  if (!paused) {
+    update();
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+
+// ==================== GAME FLOW ====================
+function startGame(mode) {
+  diff = DIFFICULTY[mode];
+  init();
+  running = true;
+  paused = false;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+  document.getElementById('pauseScreen').classList.add('hidden');
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function endGame() {
+  running = false;
+  const endTitle = document.getElementById('endTitle');
+  endTitle.textContent = scoreL >= WIN_SCORE ? 'YOU WIN!' : 'CPU WINS';
+  endTitle.style.color = scoreL >= WIN_SCORE ? 'var(--green)' : 'var(--red)';
+  document.getElementById('endLeft').textContent = scoreL;
+  document.getElementById('endRight').textContent = scoreR;
+  document.getElementById('endScreen').classList.remove('hidden');
+}
+
+function showStart() {
+  running = false;
+  document.getElementById('endScreen').classList.add('hidden');
+  document.getElementById('pauseScreen').classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+}
+
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  document.getElementById('pauseScreen').classList.toggle('hidden', !paused);
+  if (!paused) requestAnimationFrame(loop);
+}
+
+// ==================== INPUT ====================
+document.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === 'Escape' || e.key.toLowerCase() === 'p') togglePause();
+});
+document.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+// Touch controls
+const touchUp = document.getElementById('touchUp');
+const touchDown = document.getElementById('touchDown');
+
+function setupTouchBtn(btn, key) {
+  const start = () => { keys[key] = true; };
+  const end   = () => { keys[key] = false; };
+  btn.addEventListener('touchstart', e => { e.preventDefault(); start(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); end(); });
+  btn.addEventListener('touchcancel', end);
+  btn.addEventListener('mousedown', start);
+  btn.addEventListener('mouseup', end);
+  btn.addEventListener('mouseleave', end);
+}
+setupTouchBtn(touchUp, 'w');
+setupTouchBtn(touchDown, 's');
+
+// Also support touch directly on canvas (swipe up/down)
+let touchStartY = null;
+canvas.addEventListener('touchstart', e => {
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (touchStartY === null) return;
+  const y = e.touches[0].clientY;
+  const delta = y - touchStartY;
+  touchStartY = y;
+  leftY = Math.max(0, Math.min(H - PADDLE_H, leftY + delta * 1.5));
+}, { passive: true });
+canvas.addEventListener('touchend', () => { touchStartY = null; });
+
+// Initial draw
+init();
+diff = DIFFICULTY.normal;
+draw();
+</script>
+</body>
+</html>
