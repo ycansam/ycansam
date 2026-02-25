@@ -6,9 +6,11 @@
 
 <br/>
 
-<a href="https://github.com/ycansam">
-  <img src="./game.svg" alt="Pong Game Animation" width="100%"/>
+<a href="https://ycansam.github.io/ycansam/pong.html">
+  <img src="./game.svg" alt="Click to play Pong!" width="100%"/>
 </a>
+
+### 🎮 [&gt; PLAY PONG](https://ycansam.github.io/ycansam/pong.html)
 
 <br/>
 
